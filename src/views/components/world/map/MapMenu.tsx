@@ -43,7 +43,7 @@ const MapSubMenuContainer = styled.div`
 
 export const MapMenu = () => {
   const dialogsRef = useDialogsRef<MapEditorAndDeletionKeys>();
-  const { mapInfo, isRMXPMode, setMapInfo } = useMapInfo();
+  const { mapInfo, setMapInfo } = useMapInfo();
   const { selectedDataIdentifier: currentMap } = useProjectMaps();
   const { hasMapModified } = useMapPage();
   const setText = useSetProjectText();
@@ -65,10 +65,10 @@ export const MapMenu = () => {
       <NavigationDatabaseGroup title={t('maps')}>
         <MapSubMenuContainer>
           <div className="buttons">
-            <SecondaryButtonWithPlusIcon className="new" onClick={() => dialogsRef.current?.openDialog('new')} disabled={isRMXPMode}>
+            <SecondaryButtonWithPlusIcon className="new" onClick={() => dialogsRef.current?.openDialog('new')}>
               {t('new_map')}
             </SecondaryButtonWithPlusIcon>
-            <NewFolderButtonOnlyIcon onClick={handleNewFolder} data-tooltip={t('new_folder')} disabled={isRMXPMode} />
+            <NewFolderButtonOnlyIcon onClick={handleNewFolder} data-tooltip={t('new_folder')} />
           </div>
           <SeparatorGreyLine />
           <MapTree />
