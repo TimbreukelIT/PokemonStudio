@@ -6,7 +6,7 @@ import { CustomHandle } from '../common/CustomHandle';
 import { Position } from '@xyflow/react';
 import React from 'react';
 
-export const DefaultCommand = ({ id, data: { dialogsRef, command }, selected }: CommandNodeProps) => {
+export const DefaultCommand = ({ id, data: { dialogsRef, command, onDuplicateNode, onDeleteNode }, selected }: CommandNodeProps) => {
   //const date = useMemo(() => new Date().toLocaleString(), []);
   const date = new Date().toLocaleString();
   const { isHandleConnected } = useHandleConnectionState(id);
@@ -15,7 +15,7 @@ export const DefaultCommand = ({ id, data: { dialogsRef, command }, selected }: 
   const isHandleRightConnected = isHandleConnected('Sright2', 'source');
 
   return (
-    <CommandNode commandType={commandType} commentCount={2} dialogsRef={dialogsRef} hasError={true} nodeId={id} selected={selected}>
+    <CommandNode commandType={commandType} commentCount={2} dialogsRef={dialogsRef} hasError={true} nodeId={id} selected={selected} onDuplicateNode={onDuplicateNode} onDeleteNode={onDeleteNode}>
       <CustomHandle
         color={color}
         handleIsConnected={isHandleRightConnected}

@@ -1,7 +1,6 @@
 import type { StudioEventCommand, CommandId, StudioEventCommandType, StudioEventCommandConnection } from '@modelEntities/event/command';
 import { validateCommandParameters, getCommandMetadata } from '@modelEntities/event/commandParameters';
 import type { StudioEvent } from '@modelEntities/event/event';
-import { v4 as generateUUID } from 'uuid';
 
 export interface ValidationError {
   nodeId: CommandId;
@@ -400,11 +399,11 @@ export class EventService {
   }
 
   private generateCommandId(): CommandId {
-    // Using a branded type - just generate a UUID and cast it
-    return generateUUID() as unknown as CommandId;
+    // Using crypto.randomUUID() available in Electron/Chromium environments
+    return crypto.randomUUID() as unknown as CommandId;
   }
 
   private generateConnectionId(): string {
-    return generateUUID();
+    return crypto.randomUUID();
   }
 }

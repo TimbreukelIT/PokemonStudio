@@ -6,6 +6,8 @@ import { EventIcon, IconsFromCommand, EventIconColor } from '@components/world/e
 import { Position } from '@xyflow/react';
 import { useHandleConnectionState } from '@components/world/event/hooks/useHandleConnectionState';
 import { CustomHandle } from '@components/world/event/common/CustomHandle';
+import { useContextMenu } from '@hooks/useContextMenu';
+import { CommandContextMenu } from '@components/world/event/common/CommandContextMenu';
 import InfoIcon from '@assets/icons/notification/info.svg';
 import NoteIcon from '@assets/icons/global/note.svg';
 import React, { ReactNode } from 'react';
@@ -157,12 +159,15 @@ type CommandNodeProps = {
   nodeId: string;
   selected?: boolean;
   children: ReactNode;
+  onDuplicateNode?: (nodeId: string) => void;
+  onDeleteNode?: (nodeId: string) => void;
 };
 
-export const CommandNode = ({ commandType, commentCount, dialogsRef, hasError, nodeId, selected, children }: CommandNodeProps) => {
+export const CommandNode = ({ commandType, commentCount, dialogsRef, hasError, nodeId, selected, children, onDuplicateNode, onDeleteNode }: CommandNodeProps) => {
   const { setCurrentEditedNode } = useEventActions();
   const { isHandleConnected } = useHandleConnectionState(nodeId);
   const { t } = useTranslation();
+  const { buildOnClick, renderContextMenu } = useContextMenu();
   const deployFooter = hasError || commentCount > 0;
   const color = IconsFromCommand[commandType].color;
   const handleLeftIsConnected = isHandleConnected('Tleft_default', 'target');
@@ -178,6 +183,11 @@ export const CommandNode = ({ commandType, commentCount, dialogsRef, hasError, n
         onDoubleClick={() => {
           setCurrentEditedNode(nodeId);
           dialogsRef?.current?.openDialog(commandType);
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          buildOnClick(e, true);
         }}
       >
         <div className="container" data-selected={selected}>
@@ -210,6 +220,12 @@ export const CommandNode = ({ commandType, commentCount, dialogsRef, hasError, n
           </div>
         </footer>
       </CommandNodeContainer>
+      {renderContextMenu(
+        <CommandContextMenu
+          onDuplicate={() => onDuplicateNode?.(nodeId)}
+          onDelete={() => onDeleteNode?.(nodeId)}
+        />
+      )}
     </>
   );
 };

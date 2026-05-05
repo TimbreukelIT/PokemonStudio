@@ -7,6 +7,8 @@ export type CommandNodeProps = {
     dialogsRef?: CommandDialogsRef;
     command: StudioEventCommandData<StudioEventCommand>;
     comments: string[];
+    onDuplicateNode?: (nodeId: string) => void;
+    onDeleteNode?: (nodeId: string) => void;
   };
   selected?: boolean;
 };

@@ -9,7 +9,7 @@ import React, { useEffect } from 'react';
 
 const INSERT_SCRIPT_EDITOR_SCHEMA = EVENT_COMMAND_INSERT_SCRIPT_VALIDATOR.pick({ script: true });
 
-export const InsertScriptCommand = ({ id, data: { dialogsRef, command, comments }, selected }: CommandNodeProps) => {
+export const InsertScriptCommand = ({ id, data: { dialogsRef, command, comments, onDuplicateNode, onDeleteNode }, selected }: CommandNodeProps) => {
   const { CommandNode, updateCommand } = useCommandNode<StudioEventCommandInsertScript>(id);
   const { type: commandType, ...commandData } = command as StudioEventCommandData<StudioEventCommandInsertScript>;
   const { canClose, getFormData, reload, defaults, formRef } = useZodForm(INSERT_SCRIPT_EDITOR_SCHEMA, commandData);
@@ -29,7 +29,7 @@ export const InsertScriptCommand = ({ id, data: { dialogsRef, command, comments 
   }, [command]);
 
   return (
-    <CommandNode commandType={commandType} commentCount={comments.length} dialogsRef={dialogsRef} nodeId={id} selected={selected}>
+    <CommandNode commandType={commandType} commentCount={comments.length} dialogsRef={dialogsRef} nodeId={id} selected={selected} onDuplicateNode={onDuplicateNode} onDeleteNode={onDeleteNode}>
       <InputFormContainer ref={formRef} onBlur={onBlur}>
         <MultiLineInput name="script" label={t(`event_command_script`)} className="nodrag" />
       </InputFormContainer>

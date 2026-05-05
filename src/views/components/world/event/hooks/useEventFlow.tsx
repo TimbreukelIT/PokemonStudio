@@ -32,6 +32,8 @@ type NodeData = {
   dialogsRef?: CommandDialogsRef;
   command: StudioEventCommandData<StudioEventCommand>;
   comments: string[];
+  onDuplicateNode?: (nodeId: string) => void;
+  onDeleteNode?: (nodeId: string) => void;
 };
 
 type NodeEvent = Node<NodeData, StudioEventCommandType>;
@@ -114,7 +116,16 @@ export const useEventFlow = (event: StudioEvent, eventFlowRef?: RefObject<HTMLDi
         id,
         type,
         position,
-        data: { dialogsRef, command: { type, ...command } as StudioEventCommandData<StudioEventCommand>, comments: [] },
+        data: {
+          dialogsRef,
+          command: { type, ...command } as StudioEventCommandData<StudioEventCommand>,
+          comments: [],
+          onDuplicateNode: (nodeId: string) => {
+            const n = reactFlowInstance.getNode(nodeId);
+            if (n) onDuplicateNodes([n as NodeEvent]);
+          },
+          onDeleteNode: (nodeId: string) => reactFlowInstance.deleteElements({ nodes: [{ id: nodeId }] }),
+        },
       };
       const shadowNode = reactFlowInstance.getNode(SHADOW_NODE_ID) as NodeShadow;
 
@@ -216,6 +227,76 @@ export const useEventFlow = (event: StudioEvent, eventFlowRef?: RefObject<HTMLDi
     [reactFlowInstance.getNodes, reactFlowInstance.getEdges],
   );
 
+  const onDuplicateNodes = useCallback(
+    (nodesToDuplicate: (NodeEvent | NodeShadow)[]) => {
+      if (document.querySelector('#dialogs')?.textContent) return;
+
+      const filtered = nodesToDuplicate.filter(
+        (n) => n.id !== SHADOW_NODE_ID && n.type !== 'shadow_node'
+      ) as NodeEvent[];
+      if (filtered.length === 0) return;
+
+      // Mutable snapshot to avoid ID collisions when duplicating multiple nodes
+      let commandsSnapshot = cloneEntity(event.commands);
+      const nodeChanges: Parameters<typeof applyNodeChanges>[0] = [];
+
+      filtered.forEach((sourceNode) => {
+        const newId = getCommandId({ ...event, commands: commandsSnapshot }) as CommandId;
+        const sourceCommand = commandsSnapshot[sourceNode.id as CommandId];
+        if (!sourceCommand) return;
+
+        const newX = sourceCommand.studioData.x + 50;
+        const newY = sourceCommand.studioData.y + 50;
+
+        // Add to snapshot so next iteration gets unique ID
+        commandsSnapshot = {
+          ...commandsSnapshot,
+          [newId]: {
+            ...cloneEntity(sourceCommand),
+            connections: {},
+            studioData: { ...sourceCommand.studioData, x: newX, y: newY },
+          },
+        };
+
+        // Deselect original
+        nodeChanges.push({ id: sourceNode.id, type: 'select', selected: false });
+
+        // Add new node as selected
+        nodeChanges.push({
+          type: 'add',
+          item: {
+            id: newId,
+            type: sourceNode.type as StudioEventCommandType,
+            position: { x: newX, y: newY },
+            selected: true,
+            data: {
+              ...sourceNode.data,
+              onDuplicateNode: (id: string) => {
+                const n = reactFlowInstance.getNode(id);
+                if (n) onDuplicateNodes([n as NodeEvent]);
+              },
+              onDeleteNode: (id: string) => reactFlowInstance.deleteElements({ nodes: [{ id }] }),
+            },
+          } as NodeEvent,
+        });
+      });
+
+      setNodes((nds) => applyNodeChanges(nodeChanges, nds));
+      updateEvent({ commands: commandsSnapshot });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [event],
+  );
+
+  const onDeleteNode = useCallback(
+    (nodeId: string) => {
+      if (document.querySelector('#dialogs')?.textContent) return;
+      reactFlowInstance.deleteElements({ nodes: [{ id: nodeId }] });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [reactFlowInstance],
+  );
+
   useEffect(() => {
     if (!currentEditedNode) return;
 
@@ -225,7 +306,22 @@ export const useEventFlow = (event: StudioEvent, eventFlowRef?: RefObject<HTMLDi
     const commandId = nodeEdited.id as CommandId;
     setNodes((nds) =>
       applyNodeChanges(
-        [{ id: nodeEdited.id, type: 'replace', item: { ...nodeEdited, data: { ...nodeEdited.data, command: event.commands[commandId] } } }],
+        [{
+          id: nodeEdited.id,
+          type: 'replace',
+          item: {
+            ...nodeEdited,
+            data: {
+              ...nodeEdited.data,
+              command: event.commands[commandId],
+              onDuplicateNode: (id: string) => {
+                const n = reactFlowInstance.getNode(id);
+                if (n) onDuplicateNodes([n as NodeEvent]);
+              },
+              onDeleteNode: (id: string) => reactFlowInstance.deleteElements({ nodes: [{ id }] }),
+            },
+          },
+        }],
         nds,
       ),
     );
@@ -235,7 +331,17 @@ export const useEventFlow = (event: StudioEvent, eventFlowRef?: RefObject<HTMLDi
 
   useEffect(() => {
     // reset states
-    const commands = initCommandNodes(event, dialogsRef);
+    const commands = initCommandNodes(event, dialogsRef).map((n) => ({
+      ...n,
+      data: {
+        ...n.data,
+        onDuplicateNode: (id: string) => {
+          const node = reactFlowInstance.getNode(id);
+          if (node) onDuplicateNodes([node as NodeEvent]);
+        },
+        onDeleteNode: (id: string) => reactFlowInstance.deleteElements({ nodes: [{ id }] }),
+      },
+    }));
     setNodes([{ id: 'shadow_node', type: 'shadow_node', position: { x: 0, y: 0 }, data: {}, hidden: true }, ...commands]);
     setEdges(initEdges(event));
     setCurrentEditedNode(undefined);
@@ -257,6 +363,23 @@ export const useEventFlow = (event: StudioEvent, eventFlowRef?: RefObject<HTMLDi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event.dbSymbol]);
 
+  useEffect(() => {
+    const element = eventFlowRef?.current;
+    if (!element) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        const selected = reactFlowInstance.getNodes().filter((n) => n.selected);
+        onDuplicateNodes(selected as (NodeEvent | NodeShadow)[]);
+      }
+    };
+
+    element.addEventListener('keydown', handleKeyDown);
+    return () => element.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onDuplicateNodes]);
+
   return {
     currentEditedNode,
     nodes,
@@ -270,5 +393,7 @@ export const useEventFlow = (event: StudioEvent, eventFlowRef?: RefObject<HTMLDi
     onBeforeDelete,
     onDelete,
     isValidConnection,
+    onDuplicateNodes,
+    onDeleteNode,
   };
 };
