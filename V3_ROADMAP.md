@@ -1,16 +1,20 @@
 # PokemonStudio v3.0 - Roadmap & Implementation Strategy
 
-**Status:** Custom fork development voor v3.0  
-**Base Release:** v2.9.1 (7 maart 2026)  
-**Upstream Milestone:** [Version 3.0](https://github.com/PokemonWorkshop/PokemonStudio/milestone/4) (23% complete, 27/115 issues)  
-**Last Updated:** 5 mei 2026
+**Status:** Custom fork development voor v3.0 — synced to upstream v2.10.0 + 7 commits (2026-07-19)  
+**Base Release:** v2.10.0 (23 juni 2026)  
+**Upstream Milestone:** [Version 3.0](https://github.com/PokemonWorkshop/PokemonStudio/milestone/4) (TBD — see notes)  
+**Last Updated:** 21 juli 2026  
+**Sync Status:** ✅ develop branch merged (13 commits) + feature/v3-event-editor merged (1 merge conflict, 3 files resolved)
 
 ---
 
 ## Executive Summary
 
 Dit document beschrijft onze strategie om PokemonStudio v3.0 volledig zelf te implementeren en uit te voeren.
-De huidige upstream versie is slechts 23% klaar. We zullen systematisch de 4 kernpijlers bouwen:
+
+**Update (2026-07-21):** Upstream is sneller vormen gegaan dan de 23%-schatting van mei suggereerde. Sinds 2026-05-04 heeft upstream 13 commits geshipt, inclusief een volledig werkende "Show Message" event-command (PR #758). De roadmap moet daarom bijgesteld worden voor reeds-geshipte werk (zie Phase 2.1) en nieuwe architectuurrichtingen (zie Phase 2.2 Condition Registry/Builder). Lokale Phase 1 Event Editor werk (duplication, context menu, EventService, commandParameters) is succesvol met v2.10.0 gemerged — geen functionaliteit verloren.
+
+We zullen systematisch de 4 kernpijlers bouwen:
 
 1. **Event Editor** (~80% van het werk) — node-based scripting als RPG Maker XP vervanging
 2. **Data Packs Management** — modulair project data beheer  
@@ -94,23 +98,32 @@ develop (upstream merges)
 - Node-based command system foundation
 - Command categorization & UI polish
 
-### Analysis van huiding werk
+### Analysis van huidig werk
 **Upstream heeft al afgemaakt:**
 - Events management basic UI (#648) ✓
 - Event tree read/update (#729) ✓
 - Minimaal node design (#731) ✓
 - Event editor in event page (#736) ✓
-- Icons + kleuren per categorie (#730) ✓
+- Icons + kleuren per categorie (#750) ✓
 - Script Command basis (#619) ✓
 
-**Wat nog moet gebeuren:**
-- [ ] Uitbreiden node-systeem voor command parameters
-- [ ] Persisten van event commands naar disk (saveEventTree uitbreiden)
-- [ ] Event duplication & moving
+**Lokale Phase 1 Event Editor werk (completed 2026-05-05):**
+- ✅ EventService.ts — generieke CRUD/validatie layer voor commands
+- ✅ commandParameters.ts — typed parameter registry voor alle command types
+- ✅ Event node duplication + context menu (Ctrl+D, rechterklik) — #1.4
+- ✅ Extended saveEventTree.ts met backup/atomic-write/validation logic
+
+**Upstream Overlap / Reconciliation Needed:**
+- PR #758 ("Implement the show message event command", 2026-06-06) shipped een volledige `ShowMessageCommand` implementatie met editor UI, which overlaps met lokale `commandParameters.ts` placeholder entries.
+  - **Decision point (open):** moet lokale `EventService`/`commandParameters.ts` upstream's echte `StudioEventCommandShowMessage` type hergebruiken/wrappen, of moet de placeholder-metadata voor Message commands verwijderd worden?
+  - **Impact:** niet functioneel blockerend (merge geslaagd, beide systemen coëxisteren), maar semantisch redundant. Voor Phase 2 planning nodig om te bepalen of het generieke command-authoring-systeem upstream's real command types gaat wrappen vs. duplicate metadata.
+  - **Affected files:** `commandParameters.ts` (lokaal, bevat Message command placeholders), `src/models/entities/event/command.ts` (upstream, bevat echt `StudioEventCommandShowMessage` type en editor imports)
+
+**Wat nog moet gebeuren (Phase 1 gate):**
+- [ ] Upstream ShowMessage reconciliation (audit + decision)
 - [ ] Event preview/preview mode
 - [ ] Undo/redo systeem
-- [ ] Comment feature voor nodes
-- [ ] Command color/icon system finaliseren
+- [ ] Comment feature voor nodes (#628 upstream issue)
 
 ### Kritische bestanden
 - `src/views/pages/world/Event.page.tsx` — main event editor page
@@ -127,33 +140,76 @@ develop (upstream merges)
 
 ---
 
+## Phase 1.5: Technical Foundation — Feature Flags (Week 6-7)
+
+**Issue:** #662 "Create a config file to handle feature flags and hide event features in release mode"
+
+**Purpose:** Enable safe incremental development of v3 features on top of the active v2.x release line. Without feature flags, untested v3 commands would be accidentally exposed to end users, breaking compatibility.
+
+**Critical dependency for Phase 2+** — do NOT merge v3 event commands into `develop` without this gate in place.
+
+**Deliverables:**
+- Feature flag configuration file (YAML/JSON structure)
+- Flag-driven rendering in event command UI (dev mode shows all commands, release mode hides v3-WIP)
+- CI/CD integration to validate flag usage
+- Documentation on adding new feature flags
+
+---
+
 ## Phase 2: Event Commands Batch 1 (Week 7-11)
 
 Implementeer fundamentele event commando's: **Messages**, **Flow Control**, **Game Data**.
 
 ### 2.1 Message Commands
-| Issue | Commando | Prioriteit | Afhankelijkheden |
-|-------|----------|-----------|------------------|
-| #588 | Show Message | CRITICAL | Node system |
-| #590 | Show Choices | CRITICAL | Message system |
-| #591 | Speakers/Names | HIGH | Message system |
-| #592 | Message Window | MEDIUM | Message system |
+| Issue | Commando | Status | Afhankelijkheden |
+|-------|----------|--------|------------------|
+| #588 | Show Message | ✅ DONE (upstream PR #758, v2.10.0) | — |
+| #590 | Show Choices | ⚠️ Upstream WIP (branch exists) | Message system, do NOT duplicate |
+| #591 | Speakers/Names | ⬜ TODO | Message system |
+| #592 | Message Window | ⬜ TODO | Message system |
 
-**Implementatie:** `src/models/event/commands/MessageCommands.ts`
+**Implementatie:** Upstream's `src/views/components/world/event/commands/ShowMessageCommand.tsx` + editors  
+**Opmerking:** `#590` heeft een actieve upstream-branch (`590-implement-the-show-choices-event-command`) — plannen tot upstream-status geverifieerd is.
 
 ### 2.2 Flow Control Commands
-| Issue | Commando | Prioriteit | Afhankelijkheden |
-|-------|----------|-----------|------------------|
-| #638 | Conditional Branch | CRITICAL | Condition evaluator |
-| #639 | Loop | CRITICAL | Flow evaluator |
-| #640 | Break Loop | CRITICAL | Loop system |
-| #641 | Wait | HIGH | Event execution |
-| #642 | Stop Event | HIGH | Event execution |
-| #643 | Go To (Jump) | MEDIUM | Flow control |
-| #644 | Call Event | MEDIUM | Event calling |
-| #636 | Event Trigger | MEDIUM | Event system |
 
-**Implementatie:** `src/models/event/commands/FlowCommands.ts`
+#### Conditional Branching — Condition Registry + Builder Architecture (NEW)
+**⚠️ Architecture changed since original roadmap:** The original plan of a single hardcoded "Conditional Branch" command has been replaced by upstream's newer design (issues #780 / #781, opened 2026-07-13/2026-07-19):
+- **#781 - Implement the MVP Condition Registry** (OPEN, foundational)
+  - Declarative catalog of conditions available for composition
+  - Defines which conditions exist, provides metadata (display, configure, validate, serialize)
+  - Does NOT manage visual composition or execution logic
+  - Must include every condition needed to replace RPG Maker XP's Conditional Branch
+  - Must include Pokémon-specific and PSDK-specific conditions
+  - **Blocks:** #780
+- **#780 - Design and Implement the Condition Builder** (OPEN, depends on #781)
+  - Generic visual composer that builds logical expressions from conditions exposed by Registry
+  - Modern replacement for RPG Maker XP's hardcoded Conditional Branch command
+  - Completely reusable — doesn't know which conditions exist (consumes #781)
+  - Enables new gameplay systems (Quests, Day Care, Pokédex, Plugins) to extend conditions without code
+
+**Note:** Do NOT implement a bespoke "Conditional Branch" command — target the Registry/Builder pattern instead.
+
+#### Other Flow Control Commands
+| Issue | Commando | Prioriteit | Status |
+|-------|----------|-----------|--------|
+| #639 | Loop | CRITICAL | ⬜ TODO |
+| #640 | Break Loop | CRITICAL | ⬜ TODO |
+| #641 | Wait | HIGH | ⬜ TODO |
+| #642 | Stop Event | HIGH | ⬜ TODO |
+| #643 | Go To (Jump) | MEDIUM | ⬜ TODO |
+| #644 | Call Event | MEDIUM | ⬜ TODO |
+
+#### Event Trigger Commands — Cluster of Related Issues
+| Issue | Commando | Prioriteit | Status | Notes |
+|-------|----------|-----------|--------|-------|
+| #636 | Event Trigger Command | CRITICAL | ⬜ TODO | Initialize events; design prep closed (#752) |
+| #765 | Manage Trigger Priorities | HIGH | ⬜ TODO | NEW (2026-07-16) — related to #636 |
+| #766 | Validate Event Entry Points | HIGH | ⬜ TODO | NEW (2026-06-06) — related to #636, design TBD |
+| #767 | Preserve RMXP Trigger Semantics | HIGH | ⬜ TODO | NEW (2026-06-06) — **scope may change due to #743 RMXP deprecation (v2.10.0)** |
+
+**Opmerking:** #743 (Deprecate RPG Maker XP for map management) al geshipt in v2.10.0 — controleer of #767's scope is veranderd.  
+**Implementatie:** `src/models/event/commands/FlowCommands.ts` + Condition Registry/Builder in eigen subsysteem
 
 ### 2.3 Game Data Commands
 | Issue | Commando | Prioriteit | Afhankelijkheden |
@@ -291,20 +347,26 @@ Implementeer specialistische commando's: **Battle**, **Inventory**, **Audio**, *
 
 **Implementatie:** `src/views/pages/Dashboard.page.tsx`
 
-### 5.2 UI/UX Refinements
+### 5.2 Event Editor Features
+- **#628 - Implement the Comment Feature** (open, user story)
+  - Comments display in node footer
+  - Comment UI/UX for adding/editing comments
+- **#629 - Preview capability for Event movements** (open, user story)
+  - Visual preview of event execution flow
+  - Shows node traversal order, loop iterations, etc.
+
+### 5.3 UI/UX Refinements
 - Event editor usability improvements
 - Command palette / quick search
 - Keyboard shortcuts
 - Dark mode support (if not present)
 - Responsive design fixes
 
-### 5.3 Supporting Features
-- [ ] RMXP map management removal (#664)
+### 5.4 Supporting Features
+- [ ] RMXP map management removal (#743 — already in v2.10.0)
 - [ ] RMXP→Studio event converter prep (#480)
 - [ ] Form Design System (#625)
-- [ ] Event preview mode (#629)
 - [ ] Copy/paste optimization (#732)
-- [ ] Feature flags config (#662)
 
 ### Deliverables
 - [ ] Polished dashboard
@@ -342,6 +404,36 @@ Implementeer specialistische commando's: **Battle**, **Inventory**, **Audio**, *
 - [ ] v3.0.0 final release
 - [ ] Complete documentation
 - [ ] Release notes
+
+---
+
+## Design System & Visual Consistency
+
+**Event Node Design Kit (upstream):**
+- ✅ **#624 - Prepare the Visual Scripting Design** (closed, 2026-03-29)
+- ✅ Figma design kit work: **#733** (closed), **#734** (closed)
+- These define the canonical visual language for event nodes and command UI
+
+**Design-Consistency Gap (local):**
+- Local Phase 1.4 work (`CommandNode.tsx`, `CommandContextMenu.tsx`, node styling) was built without reference to the upstream Figma design kit
+- **Action required:** Post-Phase 1, add a design-consistency pass to align local node UI with upstream's established patterns
+
+**Related upstream work:**
+- **#625 - Implement the Form Design System** (open, user story, design)
+  - Generic form components for command parameter UI
+  - Should be consumed by Phase 2+ command implementations
+
+---
+
+## Out of Band Backlog — Unscheduled but Real Scope
+
+These are open upstream issues relevant to v3 that don't yet have a scheduled phase:
+
+| Issue | Title | Type | Status | Notes |
+|-------|-------|------|--------|-------|
+| #763 | Accessibility Audit and Keyboard Navigation Strategy | Documentation, Accessibility, Analysis | OPEN | Not yet integrated into v3 roadmap; impacts all UI work |
+| #784 | Introduce Trainer Classes as a First-Class Database Entity | User story | OPEN | Informational — unrelated to event editor but affects game data model |
+| —    | GitHub Projects Board (upstream) | Resource | Manual check | https://github.com/orgs/PokemonWorkshop/projects/1/views/1 — not queryable via API (token lacks `read:project` scope) — flag for manual monthly review |
 
 ---
 

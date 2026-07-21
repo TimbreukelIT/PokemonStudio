@@ -1,83 +1,116 @@
 # V3.0 Progress Tracking
 
 **Purpose:** Central tracker for v3.0 implementation progress  
-**Updated:** 5 mei 2026  
-**Total Progress:** 0% (setup phase)
+**Updated:** 21 juli 2026  
+**Total Progress:** Phase 0 ~80% + Phase 1 ~50% (git sync + partial Phase 1 implemented locally)
 
 ---
 
 ## Phase 0: Foundation Setup
 
 **Target Duration:** Week 1-2  
-**Current Week:** 1  
-**Progress:** 4/5 completed
+**Actual Duration:** ~11 weeks (2026-05-05 to 2026-07-21)  
+**Progress:** 5/5 completed
 
-| Task | Status | Owner | Notes |
-|------|--------|-------|-------|
-| Merge upstream develop | ✅ DONE | Claude | Already up-to-date with upstream/develop, React 19 migration complete |
-| Create feature branches | ✅ DONE | Claude | Created: feature/v3-event-editor, feature/v3-commands-batch1, feature/v3-commands-batch2, feature/v3-data-packs, feature/v3-dashboard |
-| Setup CI/CD (GitHub Actions) | 🔄 IN PROGRESS | - | Next: create .github/workflows for lint, test, build validation |
-| Documentation setup | ✅ DONE | Claude | V3_INDEX.md, V3_ROADMAP.md, V3_PROJECT_OVERVIEW.md, V3_IMPLEMENTATION_PLAN.md, V3_TRACKING.md copied to develop |
-| Local dev environment validation | ✅ DONE | Claude | npm ci successful (1089 packages), linter passed (0 errors, 354 pre-existing warnings) |
+| Task | Status | Completed | Notes |
+|------|--------|-----------|-------|
+| Initial fork & setup | ✅ DONE | 2026-05-05 | Forked from upstream, created feature branches |
+| Create feature branches | ✅ DONE | 2026-05-05 | feature/v3-event-editor, feature/v3-commands-batch1/2, feature/v3-data-packs, feature/v3-dashboard |
+| Merge upstream develop (initial) | ✅ DONE | 2026-05-05 | Merged upstream at commit 0139431 (v2.9.1 era, React 19 migration complete) |
+| Local Phase 1 work (partial Phase 1) | ✅ DONE | 2026-05-05 | EventService.ts, commandParameters.ts, duplication/context menu, saveEventTree extensions — 4 commits |
+| **Re-sync with upstream v2.10.0 (CRITICAL)** | ✅ DONE | 2026-07-21 | Merged upstream/develop (13 commits ahead, through v2.10.0 + 7). feature/v3-event-editor merged (1 merge conflict resolved). See V3_ROADMAP for upstream overlap analysis. |
+| Setup CI/CD (GitHub Actions) | 🔄 DEFERRED | — | Out of scope for this sync pass; scheduled for Phase 1 completion |
+| Documentation setup | ✅ DONE | 2026-05-05 + 2026-07-21 | V3_ROADMAP.md, V3_TRACKING.md updated with current state, architecture changes, backlog items |
+| Local dev environment validation | ✅ DONE | 2026-07-21 | npm ci (1089 packages), npm run lint (348 warnings, 0 errors) — no breaking changes |
 
 **Blockers:** None  
-**Notes:** Phase 1 (Event Editor Core) can begin after CI/CD setup or in parallel
+**Notes:** Phase 1.5 (Feature Flags config, #662) must complete before Phase 2 starts. Phase 1 Event Editor work awaits upstream ShowMessage reconciliation decision (see V3_ROADMAP).
 
 ---
 
 ## Phase 1: Event Editor Core
 
 **Target Duration:** Week 3-6  
-**Current Status:** Not started  
-**Progress:** 0/7 completed
+**Actual Duration:** Partially complete (2026-05-05 — ongoing)  
+**Progress:** 5/7 tasks done, 2 blocked on design/integration decisions
 
 | Task | Status | Owner | Upstream Issue | Notes |
 |------|--------|-------|-----------------|-------|
-| Extend EventNode models | ⬜ TODO | - | #729 | Create full parameter system |
-| Create BaseCommand classes | ⬜ TODO | - | - | Abstract command base |
-| Implement EventService | ⬜ TODO | - | - | CRUD, validation, persistence |
-| Update Event.page.tsx | ⬜ TODO | - | #736 | Full event editor UI |
-| Create CommandFactory | ⬜ TODO | - | - | Registry for all commands |
-| Unit tests (EventService) | ⬜ TODO | - | - | 90%+ coverage target |
-| Documentation (EVENT_SYSTEM.md) | ⬜ TODO | - | - | Architecture & usage guide |
+| Extend EventNode models | ✅ DONE | Claude | #729 | Full type system via commandParameters.ts (1091 lines) |
+| Implement EventService | ✅ DONE | Claude | — | CRUD, validation, persistence in src/services/EventService.ts (410 lines) |
+| Enhanced event persistence | ✅ DONE | Claude | — | saveEventTree.ts extended with backup/atomic-write/validation (+251 lines) |
+| Event duplication & context menu | ✅ DONE | Claude | #1.4 (local) | Ctrl+D keyboard shortcut, right-click menu with Delete option |
+| **Upstream ShowMessage reconciliation** | ⏳ BLOCKED | — | #758 (upstream) | **Open decision:** adapt EventService/commandParameters to wrap upstream's real ShowMessageCommand, or drop Message placeholder metadata? Must resolve before Phase 1 gate |
+| Create CommandFactory registry | ⬜ TODO | — | — | Extensible registry for all 70+ command types (currently EventService handles generically) |
+| Unit tests (EventService + Phase 1) | ⬜ TODO | — | — | 80%+ coverage target for all Phase 1 code |
+| Documentation (EVENT_SYSTEM.md) | ⬜ TODO | — | — | Architecture & usage guide for EventService, commandParameters, duplication system |
 
 **Critical Path:**
-1. EventNode models → BaseCommand → CommandFactory
-2. EventService → Event.page.tsx integration
-3. Testing & documentation
+1. **GATE:** Upstream ShowMessage reconciliation (blocks further message-command work)
+2. CommandFactory registry + Command base classes
+3. EventService → Event.page.tsx integration (already partially done)
+4. Testing & documentation
 
-**Blockers:** Phase 0 must complete  
-**Dependencies:** Upstream develop merge, React 19 migration complete
+**Blockers:** None (Phase 0 complete, but ShowMessage reconciliation is an internal gate)  
+**Dependencies:** Feature Flags config (#662, Phase 1.5) must be in place before shipping Phase 1 to develop
+
+---
+
+## Phase 1.5: Technical Foundation — Feature Flags
+
+**Target Duration:** Week 6-7  
+**Current Status:** Not started  
+**Progress:** 0/1 completed
+
+| Task | Issue | Status | Owner | Notes |
+|------|-------|--------|-------|-------|
+| Feature flag config file (#662) | #662 | ⬜ TODO | — | Must complete BEFORE Phase 2 merges to develop to avoid exposing unfinished v3 features |
+
+**Blockers:** None (can start immediately)  
+**Dependencies:** None (independent feature)  
+**Blocked By:** None  
+**Notes:** CRITICAL blocker for Phase 2. Without this, v3 commands would be visible in release builds and break compatibility.
 
 ---
 
 ## Phase 2: Event Commands Batch 1
 
-**Target Duration:** Week 7-11  
+**Target Duration:** Week 7-11 (adjusted: after Phase 1.5 complete)  
 **Current Status:** Not started  
-**Progress:** 0/13 completed
+**Progress:** 0/13 main commands + Condition Registry/Builder (architectural change)
 
 ### Message Commands
 
 | Command | Issue | Status | Owner | Tests | Docs |
 |---------|-------|--------|-------|-------|------|
-| ShowMessage | #588 | ⬜ TODO | - | ⬜ | ⬜ |
-| ShowChoices | #590 | ⬜ TODO | - | ⬜ | ⬜ |
+| ShowMessage | #588 | ✅ DONE (upstream) | — | ✅ | ✅ |
+| ShowChoices | #590 | ⚠️ UPSTREAM WIP | — | — | — |
 | Speakers/Names | #591 | ⬜ TODO | - | ⬜ | ⬜ |
 | Message Window | #592 | ⬜ TODO | - | ⬜ | ⬜ |
 
-### Flow Control Commands
+**Note:** #590 has an active upstream branch — do NOT duplicate. Wait for upstream status.
 
-| Command | Issue | Status | Owner | Tests | Docs |
-|---------|-------|--------|-------|-------|------|
-| Conditional Branch | #638 | ⬜ TODO | - | ⬜ | ⬜ |
-| Loop | #639 | ⬜ TODO | - | ⬜ | ⬜ |
-| Break Loop | #640 | ⬜ TODO | - | ⬜ | ⬜ |
-| Wait | #641 | ⬜ TODO | - | ⬜ | ⬜ |
-| Stop Event | #642 | ⬜ TODO | - | ⬜ | ⬜ |
-| Go To (Jump) | #643 | ⬜ TODO | - | ⬜ | ⬜ |
-| Call Event | #644 | ⬜ TODO | - | ⬜ | ⬜ |
-| Event Trigger | #636 | ⬜ TODO | - | ⬜ | ⬜ |
+### Flow Control Commands — Conditional Branching (ARCHITECTURE CHANGE)
+
+| Command/Component | Issue | Status | Owner | Notes |
+|-------------------|-------|--------|-------|-------|
+| **MVP Condition Registry** | #781 | ⬜ TODO | — | Declarative catalog of conditions. **Blocks:** #780. CRITICAL dependency. |
+| **Condition Builder** | #780 | ⬜ TODO | — | Generic visual composer. Depends on #781. |
+| Loop | #639 | ⬜ TODO | - | ⬜ TODO |
+| Break Loop | #640 | ⬜ TODO | - | ⬜ TODO |
+| Wait | #641 | ⬜ TODO | - | ⬜ TODO |
+| Stop Event | #642 | ⬜ TODO | - | ⬜ TODO |
+| Go To (Jump) | #643 | ⬜ TODO | - | ⬜ TODO |
+| Call Event | #644 | ⬜ TODO | - | ⬜ TODO |
+
+### Event Trigger Commands — New Issue Cluster
+
+| Command | Issue | Status | Owner | Notes |
+|---------|-------|--------|-------|-------|
+| Event Trigger Command | #636 | ⬜ TODO | — | Design prep closed (#752). |
+| Trigger Priorities | #765 | ⬜ TODO | — | NEW (2026-07-16) — depends on #636 |
+| Event Entry Point Validation | #766 | ⬜ TODO | — | NEW (2026-06-06) — design/analysis needed |
+| Preserve RMXP Trigger Semantics | #767 | ⬜ TODO | — | NEW (2026-06-06) — **scope may change due to #743 (v2.10.0)** |
 
 ### Game Data Commands
 
@@ -88,9 +121,8 @@
 | Local Variables | #569 | ⬜ TODO | - | ⬜ | ⬜ |
 | Timer Control | #570 | ⬜ TODO | - | ⬜ | ⬜ |
 
-**Dependencies:** Phase 1 completion  
-**Blockers:** None known yet  
-**Notes:** Start after Event Editor Core is solid
+**Blockers:** Phase 1 + Phase 1.5 (Feature Flags)  
+**Notes:** Start after Event Editor Core is solid AND feature flags are gated. Condition Registry/Builder is a major architectural change from the original "Conditional Branch" command plan.
 
 ---
 
@@ -253,11 +285,14 @@ Total: ~27 weeks (estimate)
 
 ## Known Issues & Blockers
 
-| Issue | Severity | Status | Workaround |
-|-------|----------|--------|-----------|
-| Upstream moving faster than us | MEDIUM | Active | Sync regularly with upstream develop |
-| PSDK API documentation | MEDIUM | Research | Contact PSDK team for API specs |
-| Electron 37 compatibility | LOW | Verify | Test build on target platforms |
+| Issue | Severity | Status | Workaround / Action |
+|-------|----------|--------|---------------------|
+| Upstream ShowMessage reconciliation (Phase 1 gate) | HIGH | OPEN | Decide: wrap upstream's ShowMessageCommand in EventService vs. remove placeholder metadata. See V3_ROADMAP "Upstream Overlap" section. |
+| Upstream moving faster than us | MEDIUM | Active | Sync regularly with upstream develop (done: 2026-07-21). Next sync: before Phase 2 starts or ~monthly. |
+| GitHub Projects Board API access | LOW | Research | Token lacks `read:project` scope. Flag for manual monthly review at https://github.com/orgs/PokemonWorkshop/projects/1/views/1 |
+| Accessibility audit scope (#763) | LOW | Research | Not yet integrated into roadmap. Flag for later integration into Phase 5 or as separate accessibility sprint. |
+| PSDK API documentation | MEDIUM | Research | Contact PSDK team for API specs (needed for Phase 4 plugin system). |
+| Electron 41 compatibility | LOW | Verify | Current version: 41.2.0 (v2.10.0). Test build on target platforms before Phase 3. |
 
 ---
 
@@ -291,10 +326,37 @@ Total: ~27 weeks (estimate)
 
 ---
 
-## Related Documents
+## Related Documents & References
 
-- `V3_ROADMAP.md` — High-level roadmap and strategy
+**Local Documentation:**
+- `V3_ROADMAP.md` — High-level roadmap and strategy (updated 2026-07-21)
 - `V3_IMPLEMENTATION_PLAN.md` — Technical implementation details
 - `V3_PROJECT_OVERVIEW.md` — Project context and goals
 - `CodeGuidelines.md` — Code style and patterns
 - `CONTRIBUTING.md` — Contribution guidelines
+
+**Key Upstream Issues (discovered 2026-07-21):**
+- **Sync Range (v2.9.1 → v2.10.0):** PR #727–#773 (22 commits, 259 files changed)
+  - #758 "Implement the show message event command" (key overlap)
+  - #743 "Deprecate RPG Maker XP for map management" (scope impact on #767)
+- **Flow Control Architecture (NEW):**
+  - #781 "Implement the MVP Condition Registry" (foundational, blocks #780)
+  - #780 "Design and Implement the Condition Builder" (replaces old "Conditional Branch" idea)
+- **Trigger-Related Cluster:**
+  - #636 "Implement the Event Trigger Command"
+  - #765 "Manage Trigger Priorities" (NEW 2026-07-16)
+  - #766 "Validate Event Entry Points" (NEW 2026-06-06)
+  - #767 "Preserve RPG Maker XP Trigger Semantics During Migration" (NEW 2026-06-06, scope TBD)
+- **Design System:**
+  - #624 "Prepare the Visual Scripting Design" (closed, Figma design kit established)
+  - #733, #734 Figma design kit work (closed)
+  - #625 "Implement the Form Design System" (open, needed for Phase 2+)
+- **Feature Flags (Phase 1.5 CRITICAL):**
+  - #662 "Create a config file to handle feature flags and hide event features in release mode"
+- **Supporting Work:**
+  - #628 "Implement the Comment Feature" (Phase 5)
+  - #629 "Preview capability for Event movements" (Phase 5)
+  - #763 "Accessibility Audit and Keyboard Navigation Strategy" (not yet scheduled)
+
+**Upstream Resources (manual check required):**
+- GitHub Projects Board: https://github.com/orgs/PokemonWorkshop/projects/1/views/1 (not API-queryable, `read:project` scope missing)
