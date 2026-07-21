@@ -1,4 +1,10 @@
-import { CommandId, StudioEventCommand, StudioEventCommandData, StudioEventCommandType } from '@modelEntities/event/command';
+import {
+  CommandId,
+  StudioEventCommand,
+  StudioEventCommandData,
+  StudioEventCommandShowMessage,
+  StudioEventCommandType,
+} from '@modelEntities/event/command';
 import { StudioEvent } from '@modelEntities/event/event';
 import { cloneEntity } from '@utils/cloneEntity';
 import { EventCommandCreation } from '@utils/eventCommandCreation';
@@ -9,6 +15,7 @@ import {
   reactFlowConnectionToStudioConnection,
   reactFlowEdgeToStudioConnection,
 } from '@utils/events/EventUtils';
+import { useSetProjectText } from '@utils/ReadingProjectText';
 import {
   addEdge,
   applyNodeChanges,
@@ -34,6 +41,7 @@ type NodeData = {
   comments: string[];
   onDuplicateNode?: (nodeId: string) => void;
   onDeleteNode?: (nodeId: string) => void;
+  csvFileId: number;
 };
 
 type NodeEvent = Node<NodeData, StudioEventCommandType>;
@@ -49,6 +57,7 @@ export const useEventFlow = (event: StudioEvent, eventFlowRef?: RefObject<HTMLDi
   ]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(initEdges(event));
   const updateEvent = useUpdateEvent(event);
+  const setText = useSetProjectText();
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -106,7 +115,7 @@ export const useEventFlow = (event: StudioEvent, eventFlowRef?: RefObject<HTMLDi
       // check if the dropped element is valid
       if (!type) return;
 
-      const command = EventCommandCreation[type];
+      const command = EventCommandCreation[type](event);
       const id = getCommandId(event);
       const position = reactFlowInstance.screenToFlowPosition({
         x: eventDrop.clientX - 160,
@@ -120,6 +129,7 @@ export const useEventFlow = (event: StudioEvent, eventFlowRef?: RefObject<HTMLDi
           dialogsRef,
           command: { type, ...command } as StudioEventCommandData<StudioEventCommand>,
           comments: [],
+          csvFileId: event.csvFileId,
           onDuplicateNode: (nodeId: string) => {
             const n = reactFlowInstance.getNode(nodeId);
             if (n) onDuplicateNodes([n as NodeEvent]);
@@ -139,6 +149,12 @@ export const useEventFlow = (event: StudioEvent, eventFlowRef?: RefObject<HTMLDi
         ),
       );
       setType(undefined);
+
+      if (type === 'show_message') {
+        const showMessageCommand = command as StudioEventCommandData<StudioEventCommandShowMessage>;
+        setText(event.csvFileId, showMessageCommand.message, '');
+        setText(event.csvFileId, showMessageCommand.narrator, '');
+      }
 
       updateEvent({
         commands: {

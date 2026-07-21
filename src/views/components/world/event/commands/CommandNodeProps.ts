@@ -9,6 +9,7 @@ export type CommandNodeProps = {
     comments: string[];
     onDuplicateNode?: (nodeId: string) => void;
     onDeleteNode?: (nodeId: string) => void;
+    csvFileId: number;
   };
   selected?: boolean;
 };
